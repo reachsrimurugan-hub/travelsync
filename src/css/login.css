@@ -1,0 +1,22 @@
+.login-page .auth-visual {
+  background-image: var(--login-bg);
+}
+
+.login-page .auth-form-card {
+  border-top: 3px solid transparent;
+  border-image: linear-gradient(90deg, var(--accent), var(--accent-light)) 1;
+}
+
+.login-forgot-link {
+  color: var(--accent);
+  font-weight: 500;
+  font-size: 0.9rem;
+  padding: 0.25rem;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.login-forgot-link:hover {
+  text-decoration: underline;
+}

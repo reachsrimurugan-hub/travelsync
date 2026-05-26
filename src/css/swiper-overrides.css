@@ -1,0 +1,44 @@
+.swiper-section {
+  padding-bottom: 2.5rem;
+  overflow: hidden;
+}
+
+.swiper-section .swiper {
+  overflow: visible;
+  padding: 0.5rem 0 2rem;
+}
+
+.swiper-section .swiper-slide {
+  width: auto;
+  height: auto;
+}
+
+.swiper-pagination-bullet {
+  background: var(--text-muted) !important;
+  opacity: 0.5 !important;
+}
+
+.swiper-pagination-bullet-active {
+  background: var(--accent) !important;
+  opacity: 1 !important;
+}
+
+.swiper-button-next,
+.swiper-button-prev {
+  color: var(--accent) !important;
+}
+
+.carousel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 1.25rem;
+  gap: 1rem;
+}
+
+.carousel-header a {
+  color: var(--accent);
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+}

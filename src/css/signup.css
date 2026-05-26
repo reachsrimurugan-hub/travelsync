@@ -1,0 +1,54 @@
+.signup-page .auth-visual {
+  background-image: var(--signup-bg);
+}
+
+.signup-page .auth-form-card h1 .gradient-text {
+  display: inline;
+}
+
+.signup-benefits {
+  list-style: none;
+  margin-top: 1rem;
+}
+
+.signup-benefits li {
+  padding: 0.35rem 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.signup-benefits li::before {
+  content: '✓';
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.forgot-page .auth-form-card {
+  max-width: 400px;
+}
+
+.forgot-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.forgot-back-link:hover {
+  color: var(--accent);
+}
+
+.forgot-success {
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.forgot-success svg {
+  color: var(--accent);
+  margin-bottom: 1rem;
+}
