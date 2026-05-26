@@ -1,13 +1,22 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiSearch, FiMapPin, FiStar, FiNavigation, FiX, FiMap, FiList } from 'react-icons/fi';
+import { FiSearch, FiMapPin, FiStar, FiNavigation, FiX, FiMap, FiList, FiCreditCard, FiChevronDown } from 'react-icons/fi';
 import { useSouthIndiaPlaces } from '../hooks/useSouthIndiaPlaces';
 import { useApp } from '../context/AppContext';
 import { PlaceDetailModal } from '../components/PlaceDetailModal';
 import { MapView } from '../components/MapView';
 import { DynamicImage } from '../components/DynamicImage';
 import { SOUTH_INDIA_STATES } from '../services/placesService';
+
+const getBudgetDisplay = (budgetVal) => {
+  switch (budgetVal) {
+    case 'low': return 'Low-cost';
+    case 'mid': return 'Mid-range';
+    case 'luxury': return 'Luxury';
+    default: return 'Any Budget';
+  }
+};
 
 export const Discover = () => {
   const { searchFilters, updateFilters } = useApp();
@@ -94,7 +103,7 @@ export const Discover = () => {
         <div
           className="discover-hero-bg"
           style={{
-            backgroundImage: `url('https://images.unsplash.com/photo-1542856391-010fb87dcfed?w=1920&q=80')`,
+            backgroundImage: `url('https://images.unsplash.com/photo-1596455607563-ad6193f76b17?w=1920&q=80')`,
           }}
         />
         <div className="discover-hero-overlay" />
@@ -106,8 +115,22 @@ export const Discover = () => {
             transition={{ duration: 0.8 }}
             className="discover-hero-text"
           >
-            <h1>Find your next adventure</h1>
-            <p>Explore majestic temples, pristine beaches, misty hill stations, and hidden treasures.</p>
+            <h1>
+              Find your next{' '}
+              <span className="accent-text-highlight">
+                adventure
+                <svg className="underline-svg" viewBox="0 0 100 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <linearGradient id="brush-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#ff6b35" />
+                      <stop offset="100%" stopColor="#ffb347" />
+                    </linearGradient>
+                  </defs>
+                  <path d="M3 5 C 30 11, 70 11, 97 5" stroke="url(#brush-grad)" strokeWidth="3" strokeLinecap="round" />
+                </svg>
+              </span>
+            </h1>
+            <p>Explore beautiful places and plan your perfect trip.</p>
           </motion.div>
 
           {/* Floating Search Container */}
@@ -118,27 +141,23 @@ export const Discover = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
-            {/* Field 1: Destination input */}
-            <div className="search-input-field">
-              <FiSearch className="field-icon" />
-              <input
-                type="text"
-                placeholder="Search destinations or activities..."
-                value={localQuery}
-                onChange={(e) => setLocalQuery(e.target.value)}
-              />
-            </div>
-
-            <div className="search-field-divider" />
-
-            {/* Field 2: Location selector */}
-            <div className="search-select-field">
+            {/* Field 1: Location selector */}
+            <div className="search-pill-field custom-select-container">
+              <div className="select-display-content">
+                <FiMapPin className="field-icon" />
+                <div className="field-select-wrap">
+                  <span className="field-label">Location</span>
+                  <span className="field-value">{localState || "All India"}</span>
+                </div>
+                <FiChevronDown className="field-chevron" />
+              </div>
               <select
                 value={localState}
                 onChange={(e) => setLocalState(e.target.value)}
                 aria-label="Select Region"
+                className="hidden-native-select"
               >
-                <option value="">All South India</option>
+                <option value="">All India</option>
                 {SOUTH_INDIA_STATES.map((s) => (
                   <option key={s} value={s}>
                     {s}
@@ -149,14 +168,23 @@ export const Discover = () => {
 
             <div className="search-field-divider" />
 
-            {/* Field 3: Budget Selector */}
-            <div className="search-select-field">
+            {/* Field 2: Budget Selector */}
+            <div className="search-pill-field custom-select-container">
+              <div className="select-display-content">
+                <FiCreditCard className="field-icon" />
+                <div className="field-select-wrap">
+                  <span className="field-label">Budget</span>
+                  <span className="field-value">{getBudgetDisplay(localBudget)}</span>
+                </div>
+                <FiChevronDown className="field-chevron" />
+              </div>
               <select
                 value={localBudget}
                 onChange={(e) => setLocalBudget(e.target.value)}
                 aria-label="Select Budget Range"
+                className="hidden-native-select"
               >
-                <option value="all">All Budgets</option>
+                <option value="all">Any Budget</option>
                 <option value="low">Low-cost (under ₹1,500)</option>
                 <option value="mid">Mid-range (₹1,500 - ₹3,500)</option>
                 <option value="luxury">Luxury (over ₹3,500)</option>
@@ -165,7 +193,7 @@ export const Discover = () => {
 
             {/* CTA button */}
             <button type="submit" className="btn btn-primary search-submit-btn">
-              Explore Places
+              <FiSearch className="search-btn-icon" /> Explore Places
             </button>
           </motion.form>
         </div>
