@@ -8,7 +8,7 @@ import { isSouthIndiaState, getSearchSuggestions } from '../utils/southIndiaData
 import { getQueryKey, getCachedImages, getOptimizedUrl, DEFAULT_PLACEHOLDER } from '../services/imageService';
 
 const MAPPLS_TOKEN = getMapplsToken();
-const SOUTH_INDIA_VIEW = { center: [20.5937, 78.9629], zoom: 5 }; // Default view centered on India
+const SOUTH_INDIA_VIEW = { center: [80.2707, 13.0827], zoom: 4.8 }; // Default view centered on Chennai/South India (lng, lat)
 const BENGALURU_COORDS = { lat: 12.9716, lng: 77.5946 }; // Reference starting coords
 
 const isValidCoord = (lat, lng) =>
@@ -21,18 +21,7 @@ const isValidCoord = (lat, lng) =>
 
 const computeView = (markers, center, zoom) => {
   if (center?.latitude != null && center?.longitude != null) {
-    return { center: [center.latitude, center.longitude], zoom };
-  }
-  if (markers.length === 1) {
-    return { center: [markers[0].lat, markers[0].lng], zoom: 11 };
-  }
-  if (markers.length > 1) {
-    const lats = markers.map((m) => m.lat);
-    const lngs = markers.map((m) => m.lng);
-    return {
-      center: [(Math.min(...lats) + Math.max(...lats)) / 2, (Math.min(...lngs) + Math.max(...lngs)) / 2],
-      zoom: 7,
-    };
+    return { center: [center.longitude, center.latitude], zoom };
   }
   return SOUTH_INDIA_VIEW;
 };
@@ -74,52 +63,60 @@ export const MapView = ({
   const routeLayerRef = useRef(null);
   const mapplsApiRef = useRef(null);
   const searchContainerRef = useRef(null);
-  const prevPlacesLength = useRef(0);
+  const prevPlacesLength = useRef(places.length);
 
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState(null);
-  const [currentZoom, setCurrentZoom] = useState(zoom || 6);
+  const [currentZoom, setCurrentZoom] = useState(zoom || 4.8);
 
   // Search State
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [searchResultPlace, setSearchResultPlace] = useState(null);
 
   // Nearby attractions & Route State
   const [nearbyAttractions, setNearbyAttractions] = useState([]);
   const [routeInfo, setRouteInfo] = useState(null);
   const [userLocation, setUserLocation] = useState(BENGALURU_COORDS);
 
-  // Get user location on mount
+  // Clear search result marker when list of places changes
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-        },
-        () => {
-          /* ignore / fallback */
-        }
-      );
-    }
-  }, []);
+    setSearchResultPlace(null);
+  }, [places]);
 
   const markers = useMemo(
-    () =>
-      (places || [])
+    () => {
+      let list = (places || [])
         .map((p) => {
           const { lat, lng } = parseLocationCoords(p);
           const distance = userLocation
             ? calculateHaversineDistance(userLocation.lat, userLocation.lng, lat, lng)
             : null;
           return { lat, lng, id: p.id, label: p.name, place: p, distance };
-        })
-        .filter((m) => isValidCoord(m.lat, m.lng)),
-    [places, userLocation]
+        });
+
+      if (searchResultPlace) {
+        const { lat, lng } = parseLocationCoords(searchResultPlace);
+        const distance = userLocation
+          ? calculateHaversineDistance(userLocation.lat, userLocation.lng, lat, lng)
+          : null;
+        if (!list.some((m) => m.id === searchResultPlace.id)) {
+          list.push({
+            lat,
+            lng,
+            id: searchResultPlace.id,
+            label: searchResultPlace.name,
+            place: searchResultPlace,
+            distance,
+          });
+        }
+      }
+
+      return list.filter((m) => isValidCoord(m.lat, m.lng));
+    },
+    [places, userLocation, searchResultPlace]
   );
 
   // Custom Zoom-based Clustering logic
@@ -246,7 +243,7 @@ export const MapView = ({
         center: [selectedMarker.lng, selectedMarker.lat],
         zoom: 12,
         speed: 1.2,
-      }) || map.setCenter?.([selectedMarker.lat, selectedMarker.lng]);
+      }) || map.setCenter?.([selectedMarker.lng, selectedMarker.lat]);
     }
   }, [selectedId, mapReady, markers]);
 
@@ -278,7 +275,7 @@ export const MapView = ({
     if (!map || markers.length === 0) return;
 
     if (markers.length === 1) {
-      map.setCenter?.([markers[0].lat, markers[0].lng]);
+      map.setCenter?.([markers[0].lng, markers[0].lat]);
       map.setZoom?.(11);
       return;
     }
@@ -286,7 +283,7 @@ export const MapView = ({
     try {
       api?.fitBounds?.({
         map,
-        bounds: markers.map((m) => [m.lat, m.lng]),
+        bounds: markers.map((m) => [m.lng, m.lat]),
         padding: 60,
       });
     } catch {
@@ -390,7 +387,7 @@ export const MapView = ({
             center: [m.lng, m.lat], // mapbox center is [lng, lat]
             zoom: nextZoom,
             speed: 1.2,
-          }) || map.setCenter?.([m.lat, m.lng]);
+          }) || map.setCenter?.([m.lng, m.lat]);
           if (!map.flyTo) {
             map.setZoom?.(nextZoom);
           }
@@ -500,13 +497,14 @@ export const MapView = ({
     setSearchQuery(sug.name || sug.label || '');
 
     if (sug.type === 'place') {
+      setSearchResultPlace(sug);
       const lat = sug.lat || sug.latitude;
       const lng = sug.lng || sug.longitude;
       mapRef.current?.flyTo?.({
         center: [lng, lat],
         zoom: 12,
         speed: 1.2,
-      }) || mapRef.current?.setCenter?.([lat, lng]);
+      }) || mapRef.current?.setCenter?.([lng, lat]);
       onMarkerClick?.(sug);
       onPlaceSelect?.(sug);
     } else if (sug.type === 'district') {
@@ -518,7 +516,7 @@ export const MapView = ({
           center: [avgLng, avgLat],
           zoom: 9.5,
           speed: 1.2,
-        }) || mapRef.current?.setCenter?.([avgLat, avgLng]);
+        }) || mapRef.current?.setCenter?.([avgLng, avgLat]);
       }
       onPlaceSelect?.({ district: sug.name, state: sug.state });
     }
@@ -541,13 +539,14 @@ export const MapView = ({
       );
 
       if (matchedCurated) {
+        setSearchResultPlace(matchedCurated);
         const lat = matchedCurated.latitude || matchedCurated.lat;
         const lng = matchedCurated.longitude || matchedCurated.lng;
         mapRef.current?.flyTo?.({
           center: [lng, lat],
           zoom: 12,
           speed: 1.2,
-        }) || mapRef.current?.setCenter?.([lat, lng]);
+        }) || mapRef.current?.setCenter?.([lng, lat]);
         onMarkerClick?.(matchedCurated);
         onPlaceSelect?.(matchedCurated);
       } else {
@@ -572,11 +571,13 @@ export const MapView = ({
           bestSeason: 'Oct - Mar',
         };
 
+        setSearchResultPlace(newDynamicPlace);
+
         mapRef.current?.flyTo?.({
           center: [result.lng, result.lat],
           zoom: 11,
           speed: 1.2,
-        }) || mapRef.current?.setCenter?.([result.lat, result.lng]);
+        }) || mapRef.current?.setCenter?.([result.lng, result.lat]);
 
         onPlaceSelect?.(newDynamicPlace);
         onMarkerClick?.(newDynamicPlace);
@@ -605,6 +606,10 @@ export const MapView = ({
             zoom: initialView.zoom,
             minZoom: 3.5,
             maxZoom: 15,
+            maxBounds: [
+              [67.0, 6.0],
+              [98.0, 37.0],
+            ],
             zoomControl: true,
             scrollWheel: true,
             scrollZoom: true,

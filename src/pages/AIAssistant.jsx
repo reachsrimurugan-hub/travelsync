@@ -6,6 +6,7 @@ import { generateAIResponse } from '../services/aiService';
 import { AISuggestionsPanel } from '../components/AISuggestionsPanel';
 import { getAISuggestedDestinations } from '../services/aiService';
 import { useApp } from '../context/AppContext';
+import { MarkdownText } from '../components/MarkdownText';
 
 const WELCOME = {
   role: 'assistant',
@@ -70,7 +71,7 @@ export const AIAssistant = () => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
               >
-                {msg.content.split('**').map((part, j) => (j % 2 === 1 ? <strong key={j}>{part}</strong> : part))}
+                <MarkdownText text={msg.content} />
                 {msg.suggestions && (
                   <div className="ai-message-suggestions">
                     {msg.suggestions.map((s) => (

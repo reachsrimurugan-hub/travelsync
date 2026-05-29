@@ -9,6 +9,16 @@
   padding-top: var(--nav-height);
 }
 
+.hero-banner-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .hero-carousel {
   position: absolute;
   inset: 0;
@@ -368,6 +378,64 @@
   .search-panel-inner {
     grid-template-columns: 2fr 1.5fr 1.5fr 1.2fr auto;
     align-items: end;
+  }
+}
+
+@media (max-width: 991px) {
+  .hero {
+    min-height: auto;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+  }
+
+  .hero-banner-container {
+    min-height: auto;
+    height: 55vh;
+    min-height: 400px;
+    padding-top: var(--nav-height);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .hero-content {
+    padding: 2rem 1.25rem 2.5rem;
+    margin-top: 0;
+    max-width: 100%;
+  }
+
+  .hero-title {
+    margin-bottom: 0.75rem;
+  }
+
+  .hero-subtitle {
+    margin-bottom: 1.5rem;
+  }
+
+  .hero-cta {
+    gap: 0.75rem;
+  }
+
+  .hero-cta .btn-lg {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.9rem;
+  }
+
+  .hero-search-wrapper {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    transform: none;
+    width: 100%;
+    padding: 0 1rem;
+    margin-top: -3rem;
+    z-index: 10;
+  }
+
+  .hero-indicators {
+    bottom: 4.5rem;
   }
 }
 

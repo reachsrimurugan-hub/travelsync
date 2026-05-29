@@ -25,11 +25,6 @@ const ABOUT_FEATURES = [
     desc: 'Discover popular attractions and secret locations rated highly by fellow travelers.'
   },
   {
-    icon: <FiCompass />,
-    title: 'Route Optimization',
-    desc: 'Seamless travel routes that save you time and transit hassles.'
-  },
-  {
     icon: <FiDollarSign />,
     title: 'Budget-Friendly Trips',
     desc: 'Accurate cost estimation and smart resource allocation for all budgets.'
@@ -45,7 +40,7 @@ export const Home = () => {
   const allPlaces = getAllSouthIndiaPlaces();
   const bentoPlaceIds = [
     'kl-munnar-tea',
-    'tn-ooty-botanical',
+    'tn-nilgiris-mudumalai',
     'tn-kodaikanal-lake',
     'kl-alleppey-houseboat',
     'ka-coorg-abbey',
@@ -222,28 +217,6 @@ export const Home = () => {
               </motion.div>
             ))}
           </div>
-
-          {/* Animated Statistics */}
-          <motion.div
-            className="stats-panel"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-50px' }}
-            transition={{ duration: 0.8 }}
-          >
-            <div className="stat-item">
-              <div className="stat-number">50,000+</div>
-              <div className="stat-label">Travelers Served</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-number">120,000+</div>
-              <div className="stat-label">Trips Planned</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-number">250+</div>
-              <div className="stat-label">Destinations Covered</div>
-            </div>
-          </motion.div>
         </div>
       </section>
 

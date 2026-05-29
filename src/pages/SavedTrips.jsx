@@ -58,14 +58,14 @@ export const SavedTrips = () => {
       <Helmet>
         <title>My Trips | TravelSync TripNest</title>
       </Helmet>
-      <div className="container page-wrapper">
+      <div className="container page-wrapper saved-trips-page">
         <h1 className="section-title">
           My <span className="gradient-text">Trips</span>
         </h1>
         <p className="section-subtitle">Cloud-synced plans from Firebase Firestore</p>
 
-        <section className="section" style={{ paddingTop: '1rem' }}>
-          <h2 className="section-title" style={{ fontSize: '1.25rem' }}>
+        <section className="section" style={{ paddingTop: '0.5rem' }}>
+          <h2 className="section-title">
             Recently Planned
           </h2>
           {recentTrips.length ? (
@@ -92,7 +92,7 @@ export const SavedTrips = () => {
                       <span>{trip.travelers} travelers</span>
                       <span className="text-accent">{formatCurrency(trip.budgetTotal || 0)}</span>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
+                    <div className="my-trip-actions-row">
                       <button type="button" className="btn btn-primary" onClick={() => openPlanner(trip)}>
                         <FiMap /> Continue Planning
                       </button>
@@ -102,7 +102,7 @@ export const SavedTrips = () => {
                       <button type="button" className="btn btn-outline" onClick={() => exportPDF(trip)}>
                         PDF
                       </button>
-                      <button type="button" className="btn btn-ghost" onClick={() => setDeleteTarget(trip)}>
+                      <button type="button" className="btn btn-ghost" onClick={() => setDeleteTarget(trip)} aria-label="Delete Trip">
                         <FiTrash2 />
                       </button>
                     </div>
@@ -118,7 +118,7 @@ export const SavedTrips = () => {
         </section>
 
         <section className="section">
-          <h2 className="section-title" style={{ fontSize: '1.25rem' }}>
+          <h2 className="section-title">
             All Saved Trips
           </h2>
           {trips.length > recentTrips.length ? (
@@ -142,7 +142,7 @@ export const SavedTrips = () => {
         </section>
 
         <section className="section">
-          <h2 className="section-title" style={{ fontSize: '1.25rem' }}>
+          <h2 className="section-title">
             Saved Places
           </h2>
           {savedPlaces.length ? (

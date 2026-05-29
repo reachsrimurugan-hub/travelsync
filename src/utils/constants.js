@@ -1,5 +1,5 @@
-export const APP_NAME = 'TravelSync';
-export const APP_TAGLINE = 'TripNest';
+export const APP_NAME = 'Travel';
+export const APP_TAGLINE = 'Sync';
 
 export const LOCATIONS = [
   'Chennai, Tamil Nadu',

@@ -140,17 +140,33 @@ export const PlaceDetailModal = ({ placeId, onClose, onSelectNearby, onViewInMap
                   <div className="detail-list glass-card">
                     <h4>Restaurants</h4>
                     <ul>
-                      {(place.restaurants || []).map((r) => (
-                        <li key={r}>{typeof r === 'string' ? r : r.name}</li>
-                      ))}
+                      {(place.restaurants || []).map((r) => {
+                        const isStr = typeof r === 'string';
+                        const name = isStr ? r : r.name;
+                        const rating = !isStr && r.rating ? ` (★ ${r.rating})` : '';
+                        const vicinity = !isStr && r.vicinity ? ` - ${r.vicinity}` : '';
+                        return (
+                          <li key={isStr ? r : (r.id || r.name)}>
+                            <strong>{name}</strong>{rating}{vicinity}
+                          </li>
+                        );
+                      })}
                     </ul>
                   </div>
                   <div className="detail-list glass-card">
                     <h4>Hotels</h4>
                     <ul>
-                      {(place.hotels || []).map((h) => (
-                        <li key={h}>{typeof h === 'string' ? h : h.name}</li>
-                      ))}
+                      {(place.hotels || []).map((h) => {
+                        const isStr = typeof h === 'string';
+                        const name = isStr ? h : h.name;
+                        const rating = !isStr && h.rating ? ` (★ ${h.rating})` : '';
+                        const vicinity = !isStr && h.vicinity ? ` - ${h.vicinity}` : '';
+                        return (
+                          <li key={isStr ? h : (h.id || h.name)}>
+                            <strong>{name}</strong>{rating}{vicinity}
+                          </li>
+                        );
+                      })}
                     </ul>
                   </div>
                 </div>
@@ -159,39 +175,6 @@ export const PlaceDetailModal = ({ placeId, onClose, onSelectNearby, onViewInMap
                     <strong>Route:</strong> {place.routeDetails}
                   </p>
                 )}
-                {(place.nearbyPlaces?.length > 0) && (
-                  <>
-                    <h4 style={{ marginTop: '1.5rem', color: 'var(--accent)' }}>Nearby Attractions</h4>
-                    <div className="nearby-places-grid">
-                      {place.nearbyPlaces.map((np) => (
-                        <button
-                          key={np.id}
-                          type="button"
-                          className="nearby-mini-card"
-                          onClick={() => onSelectNearby?.(np)}
-                        >
-                          <DynamicImage
-                            placeName={np.name}
-                            district={np.district || place.district}
-                            fallback={np.image}
-                            width={120}
-                            height={90}
-                            alt={np.name}
-                          />
-                          <strong>{np.name}</strong>
-                          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{np.rating} ★</span>
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-                <h4 style={{ marginTop: '1.5rem', color: 'var(--accent)' }}>Reviews</h4>
-                {(place.reviews || []).map((r, i) => (
-                  <div key={i} className="review-item">
-                    <strong>{r.author}</strong> — {'★'.repeat(r.rating)}
-                    <p>{r.text}</p>
-                  </div>
-                ))}
               </div>
             </>
           ) : (

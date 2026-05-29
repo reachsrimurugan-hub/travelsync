@@ -252,8 +252,20 @@
 }
 
 @media (max-width: 991px) {
-  .user-menu-name {
-    display: none;
+  .navbar-inner {
+    justify-content: flex-start;
+    gap: 1rem;
+  }
+
+  .navbar-actions {
+    gap: 0;
+  }
+
+  .navbar-actions .user-menu,
+  .navbar-actions .navbar-btn-signin,
+  .navbar-actions .navbar-btn-signup,
+  .navbar-actions .navbar-hamburger {
+    display: none !important;
   }
 }
 

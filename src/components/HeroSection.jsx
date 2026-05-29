@@ -91,94 +91,95 @@ export const HeroSection = ({ onPlacesLoaded }) => {
 
   return (
     <section className="hero">
-      <div className="hero-carousel">
-        {CAROUSEL_DESTINATIONS.map((dest, i) => (
-          <div
-            key={dest.title}
-            className={`hero-slide ${i === active ? 'active' : ''}`}
-            style={{ backgroundImage: `url(${images[i] || dest.image})` }}
-          />
-        ))}
-      </div>
-      <div className="hero-overlay" />
+      <div className="hero-banner-container">
+        <div className="hero-carousel">
+          {CAROUSEL_DESTINATIONS.map((dest, i) => (
+            <div
+              key={dest.title}
+              className={`hero-slide ${i === active ? 'active' : ''}`}
+              style={{ backgroundImage: `url(${images[i] || dest.image})` }}
+            />
+          ))}
+        </div>
+        <div className="hero-overlay" />
 
-      {/* Navigation Arrows */}
-      <button
-        type="button"
-        className="hero-arrow hero-arrow-left"
-        onClick={handlePrev}
-        aria-label="Previous Slide"
-      >
-        <FiChevronLeft size={24} />
-      </button>
-      <button
-        type="button"
-        className="hero-arrow hero-arrow-right"
-        onClick={handleNext}
-        aria-label="Next Slide"
-      >
-        <FiChevronRight size={24} />
-      </button>
-
-      <div className="hero-content container">
-        <motion.div
-          className="hero-badge"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6 }}
+        {/* Navigation Arrows */}
+        <button
+          type="button"
+          className="hero-arrow hero-arrow-left"
+          onClick={handlePrev}
+          aria-label="Previous Slide"
         >
-        </motion.div>
-
-        <motion.h1
-          className="hero-title"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.1 }}
+          <FiChevronLeft size={24} />
+        </button>
+        <button
+          type="button"
+          className="hero-arrow hero-arrow-right"
+          onClick={handleNext}
+          aria-label="Next Slide"
         >
-          Discover South India's <span className="gradient-text">Unseen Marvels</span>
-        </motion.h1>
+          <FiChevronRight size={24} />
+        </button>
 
-        <motion.p
-          className="hero-subtitle"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3, duration: 0.8 }}
-        >
-          Explore Munnar's mist-covered hills, Alleppey's serene backwaters, and Hampi's ancient ruins with personalized AI itineraries tailored just for you.
-        </motion.p>
+        <div className="hero-content container">
+          <motion.div
+            className="hero-badge"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6 }}
+          >
+          </motion.div>
 
-        <motion.div
-          className="hero-cta"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-        >
-          <Link to="/planner" className="btn btn-primary btn-lg">
-            Start Planning
-          </Link>
-          <Link to="/discover" className="btn btn-outline btn-lg">
-            Explore Places
-          </Link>
-        </motion.div>
-      </div>
+          <motion.h1
+            className="hero-title"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.1 }}
+          >
+            Discover South India's <span className="gradient-text">Unseen Marvels</span>
+          </motion.h1>
 
-      {/* Carousel Caption (Bottom-Left) */}
-      <div className="hero-slide-caption">
-        <div className="caption-title">{CAROUSEL_DESTINATIONS[active].title}</div>
-        <div className="caption-subtitle">{CAROUSEL_DESTINATIONS[active].subtitle}</div>
-        <div className="caption-quote">"{CAROUSEL_DESTINATIONS[active].quote}"</div>
-      </div>
+          <motion.p
+            className="hero-subtitle"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3, duration: 0.8 }}
+          >
+          </motion.p>
 
-      <div className="hero-indicators">
-        {CAROUSEL_DESTINATIONS.map((_, i) => (
-          <button
-            key={i}
-            type="button"
-            className={`hero-dot ${i === active ? 'active' : ''}`}
-            onClick={() => setActive(i)}
-            aria-label={`Slide ${i + 1}`}
-          />
-        ))}
+          <motion.div
+            className="hero-cta"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+          >
+            <Link to="/planner" className="btn btn-primary btn-lg">
+              Start Planning
+            </Link>
+            <Link to="/discover" className="btn btn-outline btn-lg">
+              Explore Places
+            </Link>
+          </motion.div>
+        </div>
+
+        {/* Carousel Caption (Bottom-Left) */}
+        <div className="hero-slide-caption">
+          <div className="caption-title">{CAROUSEL_DESTINATIONS[active].title}</div>
+          <div className="caption-subtitle">{CAROUSEL_DESTINATIONS[active].subtitle}</div>
+          <div className="caption-quote">"{CAROUSEL_DESTINATIONS[active].quote}"</div>
+        </div>
+
+        <div className="hero-indicators">
+          {CAROUSEL_DESTINATIONS.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              className={`hero-dot ${i === active ? 'active' : ''}`}
+              onClick={() => setActive(i)}
+              aria-label={`Slide ${i + 1}`}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Floating Glassmorphism Search Bar */}

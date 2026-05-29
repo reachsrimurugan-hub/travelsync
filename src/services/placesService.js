@@ -11,17 +11,43 @@ import {
   isSouthIndiaState,
 } from '../utils/southIndiaData';
 
-const RAPIDAPI_HOST = 'travel-advisor.p.rapidapi.com';
 const API_KEY = import.meta.env.VITE_PLACES_API_KEY;
 
-const api = axios.create({
-  baseURL: `https://${RAPIDAPI_HOST}`,
-  timeout: 14000,
-  headers: {
-    'X-RapidAPI-Key': API_KEY,
-    'X-RapidAPI-Host': RAPIDAPI_HOST,
-  },
-});
+let googleMapsPromise = null;
+
+const loadGoogleMaps = () => {
+  if (googleMapsPromise) return googleMapsPromise;
+
+  googleMapsPromise = new Promise((resolve, reject) => {
+    if (window.google?.maps?.places) {
+      resolve(window.google.maps);
+      return;
+    }
+
+    // Check if script is already present
+    const scripts = document.getElementsByTagName('script');
+    for (let i = 0; i < scripts.length; i++) {
+      if (scripts[i].src && scripts[i].src.includes('maps.googleapis.com/maps/api/js')) {
+        const oldOnload = scripts[i].onload;
+        scripts[i].onload = () => {
+          if (oldOnload) oldOnload();
+          resolve(window.google.maps);
+        };
+        return;
+      }
+    }
+
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve(window.google.maps);
+    script.onerror = (e) => reject(new Error('Failed to load Google Maps script'));
+    document.head.appendChild(script);
+  });
+
+  return googleMapsPromise;
+};
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const cache = new Map();
@@ -56,13 +82,40 @@ const isSouthIndiaQuery = (text = '') => {
 
 const normalizePlace = (item, meta = {}, index = 0) => {
   const fallback = getAllSouthIndiaPlaces()[index % 40];
-  const photo = item.photo?.images?.large?.url || item.photo?.images?.medium?.url;
-  const address = item.address || item.location_string || item.result_object?.location_string || '';
+  const isGoogle = !!item.place_id;
+
+  let photo = null;
+  if (isGoogle) {
+    if (typeof item.photos?.[0]?.getUrl === 'function') {
+      photo = item.photos[0].getUrl({ maxWidth: 600, maxHeight: 400 });
+    } else if (item.photos?.[0]?.photo_reference) {
+      photo = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photo_reference=${item.photos[0].photo_reference}&key=${API_KEY}`;
+    }
+  } else {
+    photo = item.photo?.images?.large?.url || item.photo?.images?.medium?.url;
+  }
+
+  const address = item.formatted_address || item.vicinity || item.address || item.location_string || item.result_object?.location_string || '';
   const state = meta.state || inferState(address) || 'Tamil Nadu';
-  const district = meta.district || inferDistrict(address, state) || meta.district;
+  const district = meta.district || inferDistrict(address, state) || meta.district || address.split(',')[0]?.trim();
+
+  let lat = fallback?.lat;
+  let lng = fallback?.lng;
+  if (isGoogle) {
+    if (typeof item.geometry?.location?.lat === 'function') {
+      lat = item.geometry.location.lat();
+      lng = item.geometry.location.lng();
+    } else {
+      lat = item.geometry?.location?.lat ?? item.lat ?? fallback?.lat;
+      lng = item.geometry?.location?.lng ?? item.lng ?? fallback?.lng;
+    }
+  } else {
+    lat = item.latitude ?? item.lat ?? fallback?.lat;
+    lng = item.longitude ?? item.lng ?? fallback?.lng;
+  }
 
   return enrichPlace({
-    id: String(item.location_id || item.id || `${meta.district}-${index}`),
+    id: String(item.place_id || item.location_id || item.id || `${meta.district}-${index}`),
     name: item.name || item.title || fallback?.name,
     district: district || fallback?.district,
     state,
@@ -70,12 +123,12 @@ const normalizePlace = (item, meta = {}, index = 0) => {
     rating: Number(item.rating) || 4.4 + (index % 5) * 0.1,
     description: item.description || item.snippet || fallback?.description || 'Explore this South Indian destination.',
     image: photo || fallback?.image,
-    latitude: item.latitude ?? item.lat ?? fallback?.lat,
-    longitude: item.longitude ?? item.lng ?? fallback?.lng,
+    latitude: lat,
+    longitude: lng,
     budget: meta.budget || fallback?.budget || 2000,
     bestSeason: meta.bestSeason || fallback?.bestSeason || 'Oct - Mar',
-    numReviews: item.num_reviews,
-    apiSource: 'rapidapi',
+    numReviews: item.user_ratings_total ?? item.num_reviews ?? 150,
+    apiSource: isGoogle ? 'google' : 'rapidapi',
   });
 };
 
@@ -93,23 +146,156 @@ const inferDistrict = (address, state) => {
   return districts.find((d) => a.includes(d.toLowerCase())) || null;
 };
 
+const mockApiSearch = (query = '', limit = 12) => {
+  const matched = filterSouthIndiaPlaces({ query });
+  return matched.slice(0, limit).map((p) => ({
+    location_id: p.id,
+    name: p.name,
+    result_object: {
+      location_id: p.id,
+      location_string: `${p.district}, ${p.state}`,
+    },
+    location_string: `${p.district}, ${p.state}`,
+    address: `${p.district}, ${p.state}`,
+    latitude: p.latitude,
+    longitude: p.longitude,
+    rating: String(p.rating),
+    description: p.description,
+    photo: {
+      images: {
+        large: { url: p.image },
+        medium: { url: p.image },
+      },
+    },
+    category: p.category,
+    num_reviews: String(p.numReviews || 120),
+    budget: p.budget,
+    bestSeason: p.bestSeason,
+  }));
+};
+
+const mockApiListByLocation = (locationId, limit = 12) => {
+  const place = getPlaceById(locationId);
+  const matchedState = place ? place.state : '';
+  const matchedDistrict = place ? place.district : '';
+
+  const related = filterSouthIndiaPlaces({ state: matchedState, district: matchedDistrict }).filter(
+    (p) => p.id !== locationId
+  );
+  const fallbackList = related.length ? related : getAllSouthIndiaPlaces().filter((p) => p.id !== locationId);
+
+  return fallbackList.slice(0, limit).map((p) => ({
+    location_id: p.id,
+    name: p.name,
+    result_object: {
+      location_id: p.id,
+      location_string: `${p.district}, ${p.state}`,
+    },
+    location_string: `${p.district}, ${p.state}`,
+    address: `${p.district}, ${p.state}`,
+    latitude: p.latitude,
+    longitude: p.longitude,
+    rating: String(p.rating),
+    description: p.description,
+    photo: {
+      images: {
+        large: { url: p.image },
+        medium: { url: p.image },
+      },
+    },
+    category: p.category,
+    num_reviews: String(p.numReviews || 120),
+    budget: p.budget,
+    bestSeason: p.bestSeason,
+  }));
+};
+
 const apiSearch = async (query, limit = 12) => {
-  if (!API_KEY) return [];
-  const { data } = await api.get('/locations/search', {
-    params: { query: `${query} India`, limit },
-  });
-  return (data?.data || []).filter((item) => {
-    const loc = (item.result_object?.location_string || item.name || '').toLowerCase();
-    return isSouthIndiaQuery(loc) || isSouthIndiaQuery(query);
-  });
+  try {
+    if (!API_KEY) throw new Error('No API key configured');
+
+    const maps = await loadGoogleMaps();
+    const dummyDiv = document.createElement('div');
+    const service = new maps.places.PlacesService(dummyDiv);
+
+    return new Promise((resolve) => {
+      service.textSearch(
+        {
+          query: `${query} South India`,
+        },
+        (results, status) => {
+          if (status === maps.places.PlacesServiceStatus.OK && results) {
+            const filtered = results.filter((item) => {
+              const addr = (item.formatted_address || item.name || '').toLowerCase();
+              return isSouthIndiaQuery(addr) || isSouthIndiaQuery(query);
+            });
+            resolve(filtered.slice(0, limit));
+          } else {
+            console.warn(`Google Places search status: ${status}. Falling back to mock.`);
+            resolve(mockApiSearch(query, limit));
+          }
+        }
+      );
+    });
+  } catch (error) {
+    console.warn(`Google Places search failed, falling back to mock. Error: ${error.message}`);
+    return mockApiSearch(query, limit);
+  }
 };
 
 const apiListByLocation = async (locationId, limit = 12) => {
-  if (!API_KEY || !locationId) return [];
-  const { data } = await api.get('/locations/list', {
-    params: { location_id: locationId, limit },
-  });
-  return data?.data || [];
+  try {
+    if (!API_KEY || !locationId) throw new Error('No API key or location ID');
+
+    if (locationId.includes('-') || !isNaN(locationId)) {
+      return mockApiListByLocation(locationId, limit);
+    }
+
+    const maps = await loadGoogleMaps();
+    const dummyDiv = document.createElement('div');
+    const service = new maps.places.PlacesService(dummyDiv);
+
+    const details = await new Promise((resolve, reject) => {
+      service.getDetails(
+        {
+          placeId: locationId,
+          fields: ['geometry'],
+        },
+        (place, status) => {
+          if (status === maps.places.PlacesServiceStatus.OK && place) {
+            resolve(place);
+          } else {
+            reject(new Error(`Failed to get details for locationId: ${locationId}, status: ${status}`));
+          }
+        }
+      );
+    });
+
+    if (!details.geometry?.location) {
+      throw new Error('No geometry location available');
+    }
+
+    return new Promise((resolve) => {
+      service.nearbySearch(
+        {
+          location: details.geometry.location,
+          radius: 15000,
+          type: 'tourist_attraction',
+        },
+        (results, status) => {
+          if (status === maps.places.PlacesServiceStatus.OK && results) {
+            resolve(results.slice(0, limit));
+          } else {
+            console.warn(`Google Nearby search status: ${status}. Falling back to mock.`);
+            resolve(mockApiListByLocation(locationId, limit));
+          }
+        }
+      );
+    });
+  } catch (error) {
+    console.warn(`Google list by location failed, falling back to mock. Error: ${error.message}`);
+    return mockApiListByLocation(locationId, limit);
+  }
 };
 
 const mergeWithCurated = (apiPlaces, curated, limit = 12) => {
@@ -146,7 +332,7 @@ export const fetchPlacesByState = async (state) => {
     /* use curated */
   }
 
-  const result = mergeWithCurated(apiPlaces, curated, 24);
+  const result = mergeWithCurated(apiPlaces, curated, 40);
   setCache(key, result);
   return result;
 };
@@ -311,7 +497,64 @@ export const searchPlaces = async (query, filters = {}) => {
 
 export const getPlaceSearchSuggestions = (query) => getSearchSuggestions(query);
 
+const googleGetDetails = async (placeId) => {
+  const maps = await loadGoogleMaps();
+  const dummyDiv = document.createElement('div');
+  const service = new maps.places.PlacesService(dummyDiv);
+
+  return new Promise((resolve, reject) => {
+    service.getDetails(
+      {
+        placeId,
+        fields: ['name', 'rating', 'formatted_address', 'photos', 'reviews', 'url', 'geometry', 'opening_hours'],
+      },
+      (place, status) => {
+        if (status === maps.places.PlacesServiceStatus.OK && place) {
+          resolve(place);
+        } else {
+          reject(new Error(`Google Places getDetails failed with status: ${status}`));
+        }
+      }
+    );
+  });
+};
+
 /** Place details with gallery, nearby, tips */
+const googleNearbySearch = async (location, type, limit = 5) => {
+  try {
+    const maps = await loadGoogleMaps();
+    const dummyDiv = document.createElement('div');
+    const service = new maps.places.PlacesService(dummyDiv);
+
+    return new Promise((resolve) => {
+      service.nearbySearch(
+        {
+          location,
+          radius: 10000, // 10 km
+          type,
+        },
+        (results, status) => {
+          if (status === maps.places.PlacesServiceStatus.OK && results) {
+            resolve(
+              results.slice(0, limit).map((p) => ({
+                id: p.place_id,
+                name: p.name,
+                rating: p.rating,
+                vicinity: p.vicinity || p.formatted_address || '',
+              }))
+            );
+          } else {
+            resolve([]);
+          }
+        }
+      );
+    });
+  } catch (err) {
+    console.warn(`Google Nearby search for ${type} failed:`, err);
+    return [];
+  }
+};
+
 export const fetchPlaceDetails = async (placeId) => {
   const curated = getPlaceById(placeId);
   const key = cacheKey(['details', placeId]);
@@ -319,69 +562,104 @@ export const fetchPlaceDetails = async (placeId) => {
   if (cached) return cached;
 
   try {
-    if (API_KEY && placeId && !placeId.includes('-')) {
-      const { data: d } = await api.get(`/locations/${placeId}/details`, {
-        params: { currency: 'USD', lang: 'en_US' },
-      });
+    if (API_KEY && placeId && !placeId.includes('-') && isNaN(placeId)) {
+      const details = await googleGetDetails(placeId);
+
+      const photoUrls = (details.photos || []).slice(0, 5).map((p) => {
+        if (typeof p.getUrl === 'function') {
+          return p.getUrl({ maxWidth: 800, maxHeight: 600 });
+        }
+        return '';
+      }).filter(Boolean);
+
+      const address = details.formatted_address || '';
+      const state = inferState(address) || curated?.state || 'Tamil Nadu';
+      const district = inferDistrict(address, state) || curated?.district || address.split(',')[0]?.trim();
+
       const base = normalizePlace(
         {
-          location_id: placeId,
-          name: d?.name,
-          address: d?.address_obj?.address_string,
-          rating: d?.rating,
-          description: d?.description,
-          latitude: d?.latitude,
-          longitude: d?.longitude,
-          num_reviews: d?.num_reviews,
-          photo: d?.photo,
+          place_id: placeId,
+          name: details.name,
+          formatted_address: details.formatted_address,
+          rating: details.rating,
+          geometry: details.geometry,
+          photos: details.photos,
         },
-        { state: curated?.state, district: curated?.district },
+        { state, district },
         0
       );
 
+      const location = details.geometry?.location;
+      let restaurants = [];
+      let hotels = [];
+
+      if (location) {
+        restaurants = await googleNearbySearch(location, 'restaurant', 5);
+        hotels = await googleNearbySearch(location, 'lodging', 5);
+      }
+
+      if (!restaurants.length) restaurants = defaultRestaurants(district);
+      if (!hotels.length) hotels = defaultHotels(district);
+
       const nearby = await fetchNearbyPlaces(
-        d?.latitude,
-        d?.longitude,
-        curated?.district,
-        curated?.state
+        base.latitude,
+        base.longitude,
+        district,
+        state
       );
 
       const detail = {
         ...base,
         ...curated,
-        reviews: (d?.reviews || []).slice(0, 5).map((r) => ({
-          author: r.user?.username || 'Traveler',
+        reviews: (details.reviews || []).slice(0, 5).map((r) => ({
+          author: r.author_name || 'Traveler',
           rating: r.rating,
-          text: r.text,
+          text: r.text || '',
         })),
-        restaurants: extractNames(d?.restaurants, curated?.district, 'restaurant'),
-        hotels: extractNames(d?.hotels, curated?.district, 'hotel'),
-        gallery: [
-          d?.photo?.images?.original?.url,
-          d?.photo?.images?.large?.url,
-          curated?.image,
-        ].filter(Boolean),
+        restaurants,
+        hotels,
+        gallery: photoUrls.length ? photoUrls : [curated?.image].filter(Boolean),
         nearbyPlaces: nearby.filter((p) => p.id !== placeId),
-        travelTips: curated?.travelTips || `Plan 2–3 days in ${curated?.district || base.district} for the best experience.`,
+        travelTips: curated?.travelTips || `Plan 2–3 days in ${district} for the best experience.`,
         bestSeason: curated?.bestSeason || 'Oct - Mar',
-        routeDetails: `Reach ${curated?.district || base.district} via nearest airport or railway. Local taxis and buses available.`,
+        routeDetails: `Reach ${district} via nearest airport or railway. Local taxis and buses available.`,
+        phone: details.formatted_phone_number || 'N/A',
+        website: details.url || '',
+        openingHours: details.opening_hours?.weekday_text || [],
       };
       setCache(key, detail);
       return detail;
     }
-  } catch {
-    /* fall through */
+  } catch (error) {
+    console.warn(`Google fetchPlaceDetails failed, falling back to curated. Error: ${error.message}`);
   }
 
   if (curated) {
+    let restaurants = [];
+    let hotels = [];
+
+    if (API_KEY && curated.lat && curated.lng) {
+      try {
+        const maps = await loadGoogleMaps();
+        const loc = new maps.LatLng(curated.lat, curated.lng);
+        restaurants = await googleNearbySearch(loc, 'restaurant', 5);
+        hotels = await googleNearbySearch(loc, 'lodging', 5);
+      } catch (e) {
+        console.warn('Google nearby search for curated failed:', e);
+      }
+    }
+
+    if (!restaurants.length) restaurants = defaultRestaurants(curated.district);
+    if (!hotels.length) hotels = defaultHotels(curated.district);
+
     const nearby = await fetchNearbyPlaces(curated.lat, curated.lng, curated.district, curated.state);
     const detail = {
       ...curated,
       lat: curated.lat,
       lng: curated.lng,
       reviews: defaultReviews(),
-      restaurants: defaultRestaurants(curated.district),
-      hotels: defaultHotels(curated.district),
+      restaurants,
+      hotels,
       gallery: [curated.image, getAllSouthIndiaPlaces()[1]?.image, getAllSouthIndiaPlaces()[2]?.image].filter(Boolean),
       nearbyPlaces: nearby.filter((p) => p.id !== placeId).slice(0, 5),
       travelTips: curated.travelTips,
@@ -420,6 +698,79 @@ const defaultHotels = (district) => [
   'Backwater Retreat',
   'City Comfort Inn',
 ];
+
+export const fetchWeatherForLocation = async (lat, lng) => {
+  if (!lat || !lng) return null;
+
+  // 1. Try Google Weather API
+  if (API_KEY) {
+    try {
+      const { data } = await axios.get('https://weather.googleapis.com/v1/currentConditions:lookup', {
+        params: {
+          key: API_KEY,
+          'location.latitude': lat,
+          'location.longitude': lng,
+        },
+        timeout: 8000,
+      });
+      if (data) {
+        return {
+          temperature: data.temperature || { degrees: 24, unit: 'CELSIUS' },
+          weatherCondition: data.weatherCondition || { type: 'CLEAR', description: { text: 'Clear' } },
+          relativeHumidity: data.relativeHumidity ?? 60,
+          cloudCover: data.cloudCover ?? 10,
+          precipitation: data.precipitation || { probability: { percent: 15 } }
+        };
+      }
+    } catch (error) {
+      console.warn('Google Weather API failed, falling back to Open-Meteo:', error.message);
+    }
+  }
+
+  // 2. Try Open-Meteo API
+  try {
+    const { data } = await axios.get('https://api.open-meteo.com/v1/forecast', {
+      params: {
+        latitude: lat,
+        longitude: lng,
+        current: 'temperature_2m,relative_humidity_2m,precipitation,weather_code,cloud_cover',
+      },
+      timeout: 5000,
+    });
+    if (data?.current) {
+      const code = data.current.weather_code ?? 0;
+      let description = 'Clear';
+      let type = 'CLEAR';
+      if (code === 0) { description = 'Clear Sky'; type = 'CLEAR'; }
+      else if (code >= 1 && code <= 3) { description = 'Partly Cloudy'; type = 'PARTLY_CLOUDY'; }
+      else if (code >= 45 && code <= 48) { description = 'Foggy'; type = 'CLOUDY'; }
+      else if (code >= 51 && code <= 55) { description = 'Drizzle'; type = 'LIGHT_RAIN'; }
+      else if (code >= 61 && code <= 65) { description = 'Rainy'; type = 'RAIN'; }
+      else if (code >= 71 && code <= 77) { description = 'Snowy'; type = 'SNOW'; }
+      else if (code >= 80 && code <= 82) { description = 'Rain Showers'; type = 'RAIN_SHOWERS'; }
+      else if (code >= 95 && code <= 99) { description = 'Thunderstorm'; type = 'THUNDERSTORM'; }
+
+      return {
+        temperature: { degrees: data.current.temperature_2m ?? 24, unit: 'CELSIUS' },
+        weatherCondition: { type, description: { text: description } },
+        relativeHumidity: data.current.relative_humidity_2m ?? 60,
+        cloudCover: data.current.cloud_cover ?? 10,
+        precipitation: { probability: { percent: data.current.precipitation > 0 ? 80 : 15 } }
+      };
+    }
+  } catch (err) {
+    console.warn('Open-Meteo weather request failed:', err.message);
+  }
+
+  // 3. Mock Fallback
+  return {
+    temperature: { degrees: 26, unit: 'CELSIUS' },
+    weatherCondition: { type: 'CLEAR', description: { text: 'Pleasant' } },
+    relativeHumidity: 55,
+    cloudCover: 12,
+    precipitation: { probability: { percent: 10 } }
+  };
+};
 
 // Legacy exports for compatibility
 export const searchLocations = async (query) =>

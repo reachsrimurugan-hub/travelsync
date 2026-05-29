@@ -1,10 +1,10 @@
-export const formatCurrency = (amount, currency = 'USD') =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount || 0);
+export const formatCurrency = (amount, currency = 'INR') =>
+  new Intl.NumberFormat('en-IN', { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount || 0);
 
 export const formatDate = (date) => {
   if (!date) return '';
   const d = date instanceof Date ? date : new Date(date);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
 export const generateId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
