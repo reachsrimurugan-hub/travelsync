@@ -114,7 +114,7 @@ export const Discover = () => {
             className="discover-hero-text"
           >
             <h1>Find your next adventure</h1>
-            <p>Explore majestic temples, pristine beaches, misty hill stations, and hidden treasures.</p>
+            <p>Explore historic landmarks, pristine beaches, misty hill stations, and hidden treasures.</p>
           </motion.div>
 
           {/* Floating Search Container */}

@@ -44,7 +44,7 @@ export const Home = () => {
     'tn-kodaikanal-lake',
     'kl-alleppey-houseboat',
     'ka-coorg-abbey',
-    'ka-hampi-virupaksha'
+    'ka-mysore-palace'
   ];
   const bentoPlaces = bentoPlaceIds
     .map(id => allPlaces.find(p => p.id === id))

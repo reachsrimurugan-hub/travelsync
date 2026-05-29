@@ -779,7 +779,6 @@ export const Planner = () => {
                         <option value="">All Categories</option>
                         <option value="beaches">Beaches</option>
                         <option value="hills">Hills</option>
-                        <option value="temples">Temples</option>
                         <option value="adventure">Adventure</option>
                         <option value="waterfalls">Waterfalls</option>
                         <option value="nature">Nature</option>

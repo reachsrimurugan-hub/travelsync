@@ -5,7 +5,6 @@ import { formatCurrency } from '../utils/helpers';
 const DESTINATION_TIPS = {
   beaches: 'Pack reef-safe sunscreen and visit early morning for fewer crowds.',
   mountains: 'Layer clothing and acclimatize for 24 hours at altitude.',
-  temples: 'Dress modestly and remove shoes where required.',
   waterfalls: 'Waterproof gear recommended; trails can be slippery.',
   adventure: 'Book guided activities and check insurance coverage.',
   nature: 'Respect wildlife distances and follow park regulations.',

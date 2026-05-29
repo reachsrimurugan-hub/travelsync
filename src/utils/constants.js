@@ -22,7 +22,6 @@ export const TRAVELER_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8];
 export const CATEGORIES = [
   { id: 'beaches', label: 'Beaches', icon: 'beach' },
   { id: 'hills', label: 'Hills', icon: 'mountain' },
-  { id: 'temples', label: 'Temples', icon: 'temple' },
   { id: 'adventure', label: 'Adventure', icon: 'adventure' },
   { id: 'waterfalls', label: 'Waterfalls', icon: 'waterfall' },
   { id: 'nature', label: 'Nature', icon: 'nature' },
